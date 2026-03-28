@@ -2,13 +2,9 @@ import axios from "axios"
 import type { ApiError } from "@/types/api"
 
 export const apiClient = axios.create({
-  // Em produção/rede local usa o proxy reverso (/api) para evitar mixed content.
-  // Em dev puro (sem proxy) pode apontar diretamente para o backend.
-  baseURL: process.env.NEXT_PUBLIC_API_URL ?? "/api",
+  // Sempre usa o proxy reverso (/api) — o Route Handler server-side injeta o X-API-Key.
+  baseURL: "/api",
   timeout: 60_000, // 60s — embeddings podem demorar na primeira requisição
-  headers: {
-    "X-API-Key": process.env.NEXT_PUBLIC_API_KEY ?? "",
-  },
 })
 
 // Normaliza erros da API FastAPI ({ detail: string }) para mensagens legíveis

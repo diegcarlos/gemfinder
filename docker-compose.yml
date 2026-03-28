@@ -11,30 +11,16 @@ services:
       # Volume para o modelo fine-tunado — persiste entre rebuilds e deployments
       - ./models:/app/models
     restart: unless-stopped
-    healthcheck:
-      test:
-        [
-          "CMD",
-          "python",
-          "-c",
-          "import urllib.request; urllib.request.urlopen('http://localhost:5000/health')",
-        ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s # CLIP demora ~30s para carregar na primeira vez
 
   # ── Frontend Next.js ─────────────────────────────────────────────────────────
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-      args:
-        # API key baked no bundle do cliente durante o build
-        NEXT_PUBLIC_API_KEY: ${NEXT_PUBLIC_API_KEY}
     environment:
-      # Proxy reverso: Next.js server repassa /api/* para o backend interno
+      # Lidos em runtime pelo Route Handler (proxy server-side)
       API_URL: http://backend:5000
+      API_KEY: ${API_KEY}
     ports:
       - "3000"
     depends_on:

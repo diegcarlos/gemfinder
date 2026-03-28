@@ -12,11 +12,6 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# NEXT_PUBLIC_API_KEY é baked no bundle do cliente — passa como build arg
-ARG NEXT_PUBLIC_API_KEY
-ENV NEXT_PUBLIC_API_KEY=$NEXT_PUBLIC_API_KEY
-
-# NEXT_PUBLIC_API_URL não definido → cliente usa "/api" (proxy reverso do Next.js)
 RUN bun run build
 
 # ── Stage 3: Runner (imagem mínima de produção) ───────────────────────────────
