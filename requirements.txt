@@ -1,0 +1,32 @@
+# ── Web framework ────────────────────────────────────────────────────────────
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+python-multipart>=0.0.9       # Required for FastAPI file uploads
+
+# ── Database ─────────────────────────────────────────────────────────────────
+sqlalchemy[asyncio]>=2.0.35
+asyncpg>=0.29.0               # Async PostgreSQL driver
+pgvector>=0.3.2               # pgvector SQLAlchemy / Python integration
+
+# ── Machine learning ─────────────────────────────────────────────────────────
+# PyTorch: install the CPU build for simplicity.
+# For GPU (CUDA 12.x) replace with:
+#   torch>=2.4.0 --index-url https://download.pytorch.org/whl/cu124
+torch>=2.4.0
+open-clip-torch>=2.26.1   # CLIP ViT-B/32 — embeddings de imagem de 512 dimensões
+numpy>=1.26.0
+
+# ── Image processing ─────────────────────────────────────────────────────────
+Pillow>=10.4.0
+
+# ── AWS ──────────────────────────────────────────────────────────────────────
+boto3>=1.35.0
+
+# ── Configuration ────────────────────────────────────────────────────────────
+pydantic-settings>=2.4.0
+python-dotenv>=1.0.1
+
+# ── Utilitários ───────────────────────────────────────────────────────────────
+tqdm>=4.66.0   # Barra de progresso para fine-tuning e reindex
+rembg>=2.0.50      # Remoção de fundo automática (U2Net) para equalizar query vs catálogo
+onnxruntime>=1.19.0  # Runtime ONNX exigido pelo rembg

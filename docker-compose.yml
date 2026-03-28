@@ -1,0 +1,38 @@
+services:
+
+  # ── Backend FastAPI ──────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file: .env          # Lê DATABASE_URL, R2_*, API_KEY, etc.
+    ports:
+      - "5000:5000"
+    volumes:
+      # Volume para o modelo fine-tunado — persiste entre rebuilds e deployments
+      - ./models:/app/models
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s     # CLIP demora ~30s para carregar na primeira vez
+
+  # ── Frontend Next.js ─────────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # API key baked no bundle do cliente durante o build
+        NEXT_PUBLIC_API_KEY: ${NEXT_PUBLIC_API_KEY}
+    environment:
+      # Proxy reverso: Next.js server repassa /api/* para o backend interno
+      API_URL: http://backend:5000
+    ports:
+      - "3000:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped

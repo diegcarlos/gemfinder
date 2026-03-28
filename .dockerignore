@@ -1,0 +1,28 @@
+# Ambiente virtual e cache Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# Variáveis de ambiente (nunca entram na imagem)
+.env
+.env.*
+
+# Frontend (tem seu próprio build)
+frontend/
+
+# Scripts de manutenção (não necessários em runtime)
+scripts/
+
+# Git
+.git/
+.gitignore
+
+# Editor
+.vscode/
+.idea/
+
+# Documentação
+*.md

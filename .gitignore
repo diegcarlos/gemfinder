@@ -1,0 +1,68 @@
+# ── Credenciais e configuração local ────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+
+# ── Python ───────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+*.log
+
+# ── Modelos de ML (pesos podem ser centenas de MB) ───────────────────────────
+models/
+*.pt
+*.pth
+*.onnx
+*.bin
+
+# Cache do rembg / u2net (~170 MB, baixado automaticamente)
+~/.u2net/
+
+# Cache do open_clip / torch hub
+*.cache/
+
+# ── Frontend ─────────────────────────────────────────────────────────────────
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/dist/
+frontend/.env
+frontend/.env.local
+frontend/.env.*.local
+
+# Certificados HTTPS gerados localmente
+frontend/certificates/
+*.pem
+*.key
+*.crt
+
+# ── Docker ───────────────────────────────────────────────────────────────────
+# Manter docker-compose.yml e Dockerfile no repo; ignorar apenas overrides locais
+docker-compose.override.yml
+
+# ── IDE / OS ─────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# ── Dados temporários ─────────────────────────────────────────────────────────
+tmp/
+temp/
+uploads/
+*.zip

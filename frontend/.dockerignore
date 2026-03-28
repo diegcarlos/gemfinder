@@ -1,0 +1,22 @@
+# Dependências (reinstaladas no build)
+node_modules/
+
+# Build anterior
+.next/
+
+# Variáveis de ambiente
+.env
+.env.*
+.env.local
+.env.local.*
+
+# Git
+.git/
+.gitignore
+
+# Editor
+.vscode/
+.idea/
+
+# Documentação
+*.md
