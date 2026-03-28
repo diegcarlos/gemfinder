@@ -21,10 +21,7 @@ htmlcov/
 .coverage
 *.log
 
-# ── Modelos de ML (pesos podem ser centenas de MB) ───────────────────────────
-models/
-*.pt
-*.pth
+# ── Modelos de ML ────────────────────────────────────────────────────────────
 *.onnx
 *.bin
 
