@@ -1,31 +1,32 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Card, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Skeleton } from "@/components/ui/skeleton"
-import type { SearchResult } from "@/types/api"
-import { formatSimilarity } from "@/utils/format"
+import { useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import type { SearchResult } from "@/types/api";
+import { formatSimilarity } from "@/utils/format";
 
 const TYPE_LABELS: Record<string, string> = {
   clean: "Fundo Branco",
   environment: "Ambiente",
   person: "Pessoa",
-}
+};
 
 interface ProductCardProps {
-  product: SearchResult
+  product: SearchResult;
 }
 
 export function ProductCard({ product }: ProductCardProps) {
-  const [activeImage, setActiveImage] = useState(product.main_image)
-  const similarity = product.similarity
-  const variant = similarity >= 0.8 ? "default" : similarity >= 0.5 ? "secondary" : "outline"
+  const [activeImage, setActiveImage] = useState(product.main_image);
+  const similarity = product.similarity;
+  const variant =
+    similarity >= 0.8 ? "default" : similarity >= 0.5 ? "secondary" : "outline";
 
   // Monta lista de thumbnails: todas as imagens de todos os tipos
   const thumbnails = Object.entries(product.images).flatMap(([type, urls]) =>
-    urls.map((url) => ({ url, type }))
-  )
+    urls.map((url: any) => ({ url, type })),
+  );
 
   return (
     <Card className="overflow-hidden group">
@@ -62,14 +63,18 @@ export function ProductCard({ product }: ProductCardProps) {
                 }`}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={url} alt={type} className="w-full h-full object-cover" />
+                <img
+                  src={url}
+                  alt={type}
+                  className="w-full h-full object-cover"
+                />
               </button>
             ))}
           </div>
         )}
       </CardContent>
     </Card>
-  )
+  );
 }
 
 export function ProductCardSkeleton() {
@@ -87,5 +92,5 @@ export function ProductCardSkeleton() {
         </div>
       </CardContent>
     </Card>
-  )
+  );
 }
