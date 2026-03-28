@@ -28,7 +28,8 @@ ENV NODE_ENV=production
 # Copia apenas os artefatos do build standalone
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
-COPY --from=builder /app/public ./public
+# public/ é opcional — só copia se existir
+COPY --from=builder /app/public* ./public/
 
 EXPOSE 3000
 
