@@ -21,7 +21,8 @@ htmlcov/
 .coverage
 *.log
 
-# ── Modelos de ML ────────────────────────────────────────────────────────────
+# ── Modelos de ML (armazenados no R2, baixados pelo entrypoint.sh) ───────────
+models/
 *.onnx
 *.bin
 

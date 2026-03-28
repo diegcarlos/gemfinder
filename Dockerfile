@@ -23,12 +23,16 @@ RUN python -c "import open_clip; open_clip.create_model_and_transforms('ViT-B-32
 # Evita delay de ~30s na primeira requisição de busca em produção
 RUN python -c "from rembg import new_session; new_session('u2net'); print('rembg U2Net cached.')"
 
-# Copia o código da aplicação
+# Copia o código da aplicação e scripts
 COPY app/ ./app/
+COPY scripts/ ./scripts/
+COPY entrypoint.sh ./entrypoint.sh
+RUN chmod +x entrypoint.sh
 
-# Diretório para o modelo fine-tunado (montado como volume no compose)
+# Diretório para o modelo fine-tunado (persistido via volume no compose)
 RUN mkdir -p models
 
 EXPOSE 5000
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "5000", "--workers", "1"]
+# O entrypoint baixa o modelo do R2 na primeira inicialização, depois sobe o uvicorn
+ENTRYPOINT ["./entrypoint.sh"]
