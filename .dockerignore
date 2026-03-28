@@ -13,8 +13,10 @@ __pycache__/
 # Frontend (tem seu próprio build)
 frontend/
 
-# Scripts de manutenção (não necessários em runtime)
-scripts/
+# Scripts de manutenção (não necessários em runtime, exceto download_model.py)
+scripts/finetune.py
+scripts/import_zip.py
+scripts/reindex.py
 
 # Git
 .git/
