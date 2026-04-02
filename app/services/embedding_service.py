@@ -12,13 +12,21 @@ class EmbeddingService:
     """
     Singleton que encapsula o modelo CLIP ViT-B/32 como extrator de features.
 
-    Comportamento:
-      1. Carrega o CLIP ViT-B/32 base com pesos do OpenAI.
-      2. Se FINETUNED_MODEL_PATH apontar para um arquivo existente, os pesos
-         fine-tunados do encoder visual são sobrepostos automaticamente.
-         Isso permite trocar entre base e fine-tuned apenas movendo/removendo o arquivo.
+    Pipeline de inferência:
+        1. Pré-processamento: crop ao objeto + padding quadrado (centraliza a joia)
+        2. Preprocess CLIP: resize 224px + normalização ImageNet/CLIP
+        3. Forward pass pelo encoder visual (base ou fine-tunado)
+        4. Normalização L2 → embedding 512-dim pronto para cosine similarity
 
-    Vetores de saída: 512-dim, normalizados L2.
+    Carregamento:
+        • CLIP ViT-B/32 base (pesos OpenAI) sempre carregado primeiro.
+        • Se FINETUNED_MODEL_PATH existir, os pesos do encoder visual são
+          sobrepostos automaticamente — troca entre base e fine-tuned apenas
+          movendo ou removendo o arquivo.
+
+    Versionamento:
+        • model_version retorna a versão do checkpoint fine-tunado (ex: "v2-triplet")
+          ou "base" se apenas o CLIP original estiver em uso.
     """
 
     _instance: "EmbeddingService | None" = None
@@ -35,41 +43,36 @@ class EmbeddingService:
 
         # ── 2. Sobrepõe pesos fine-tunados se disponíveis ─────────────
         self._finetuned = False
+        self._version   = "base"
         model_path = Path(settings.FINETUNED_MODEL_PATH)
         if model_path.exists():
             self._load_finetuned(model_path)
 
     def _load_finetuned(self, path: Path) -> None:
-        """
-        Carrega os pesos do encoder visual fine-tunado sobre o CLIP base.
-
-        O checkpoint contém apenas o state_dict de model.visual — não o modelo
-        completo — para manter o arquivo pequeno e o carregamento rápido.
-        """
         checkpoint = torch.load(path, map_location=self.device, weights_only=True)
         self.model.visual.load_state_dict(checkpoint["visual_state_dict"])
         self.model.eval()
         self._finetuned = True
+        self._version   = checkpoint.get("version", "v1")
         print(
             f"✓ Pesos fine-tunados carregados: {path} "
-            f"(época {checkpoint.get('epoch', '?')}, "
-            f"loss {checkpoint.get('loss', '?'):.4f})"
+            f"(versão {self._version}, "
+            f"época {checkpoint.get('epoch', '?')}, "
+            f"top1 {checkpoint.get('best_top1', checkpoint.get('loss', '?'))})"
         )
 
     # ------------------------------------------------------------------
-    # Singleton accessor
+    # Singleton
     # ------------------------------------------------------------------
 
     @classmethod
     def get_instance(cls) -> "EmbeddingService":
-        """Retorna (ou cria lazily) a instância compartilhada do serviço."""
         if cls._instance is None:
             cls._instance = cls()
         return cls._instance
 
     @classmethod
     def reset(cls) -> None:
-        """Descarta a instância singleton — útil após atualizar o checkpoint."""
         cls._instance = None
 
     # ------------------------------------------------------------------
@@ -78,21 +81,26 @@ class EmbeddingService:
 
     def generate_embedding(self, image: Image.Image) -> list[float]:
         """
-        Gera um embedding normalizado L2 a partir de uma imagem PIL.
+        Gera embedding normalizado L2 a partir de uma imagem PIL.
 
-        Steps:
-            1. Converte para RGB
-            2. Aplica o preprocess do CLIP (resize 224px + normalização)
-            3. Forward pass pelo encoder visual (base ou fine-tunado)
-            4. Normalização L2 — cosine similarity == produto interno
-            5. Retorna como lista Python para pgvector
+        O pipeline aplica crop/pad para centralizar o objeto antes do preprocess
+        do CLIP, melhorando a qualidade dos embeddings para imagens de joias.
+
+        Args:
+            image: PIL Image (qualquer modo/tamanho).
 
         Returns:
-            Lista de 512 floats.
+            Lista de 512 floats normalizados L2.
         """
         if image.mode != "RGB":
             image = image.convert("RGB")
 
+        # Pré-processamento: centraliza o objeto (crop + pad quadrado)
+        from app.services.image_preprocessing_service import crop_to_object, pad_to_square
+        image = crop_to_object(image)
+        image = pad_to_square(image)
+
+        # Preprocess CLIP: resize 224px + normalização
         tensor = self.preprocess(image).unsqueeze(0).to(self.device)
 
         with torch.no_grad():
@@ -115,4 +123,10 @@ class EmbeddingService:
 
     @property
     def model_name(self) -> str:
-        return "CLIP ViT-B/32 (fine-tuned)" if self._finetuned else "CLIP ViT-B/32"
+        if self._finetuned:
+            return f"CLIP ViT-B/32 fine-tuned ({self._version})"
+        return "CLIP ViT-B/32 base"
+
+    @property
+    def model_version(self) -> str:
+        return self._version
