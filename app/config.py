@@ -28,6 +28,12 @@ class Settings(BaseSettings):
     # Desative apenas para debug ou se as queries já chegarem sem fundo.
     REMOVE_BG_ON_SEARCH: bool = True
 
+    # Re-ranking pós pgvector usando histograma de cor HSV.
+    # Combina: 0.65 × cosine_sim + 0.35 × color_histogram_sim
+    # Busca RERANK_CANDIDATES resultados no pgvector e re-ordena para retornar TOP_K_RESULTS.
+    RERANK_RESULTS: bool = True
+    RERANK_CANDIDATES: int = 25  # candidatos buscados antes do re-ranking (≥ TOP_K_RESULTS)
+
     # Fine-tuning
     # Caminho para os pesos fine-tunados. Se o arquivo existir, o EmbeddingService
     # os carrega automaticamente sobre o CLIP base. Deixe vazio para usar CLIP puro.

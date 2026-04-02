@@ -13,20 +13,15 @@ class EmbeddingService:
     Singleton que encapsula o modelo CLIP ViT-B/32 como extrator de features.
 
     Pipeline de inferência:
-        1. Pré-processamento: crop ao objeto + padding quadrado (centraliza a joia)
-        2. Preprocess CLIP: resize 224px + normalização ImageNet/CLIP
-        3. Forward pass pelo encoder visual (base ou fine-tunado)
-        4. Normalização L2 → embedding 512-dim pronto para cosine similarity
+        1. Pré-processamento espacial: crop foreground (RGBA-aware) + padding quadrado
+           → garante que o objeto ocupa ≥ 70% do canvas independente da entrada
+        2. Preprocess CLIP: resize 224px + normalização
+        3. Forward pass (base ou fine-tunado)
+        4. Normalização L2 → 512-dim para cosine similarity
 
-    Carregamento:
-        • CLIP ViT-B/32 base (pesos OpenAI) sempre carregado primeiro.
-        • Se FINETUNED_MODEL_PATH existir, os pesos do encoder visual são
-          sobrepostos automaticamente — troca entre base e fine-tuned apenas
-          movendo ou removendo o arquivo.
-
-    Versionamento:
-        • model_version retorna a versão do checkpoint fine-tunado (ex: "v2-triplet")
-          ou "base" se apenas o CLIP original estiver em uso.
+    Entrada aceita RGB e RGBA:
+        • RGB  → crop por threshold branco (catálogo fundobranco)
+        • RGBA → crop por canal alpha do rembg (fotos reais após remove_background_rgba)
     """
 
     _instance: "EmbeddingService | None" = None
@@ -34,14 +29,12 @@ class EmbeddingService:
     def __init__(self) -> None:
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-        # ── 1. Carrega CLIP base ──────────────────────────────────────
         self.model, _, self.preprocess = open_clip.create_model_and_transforms(
             "ViT-B-32", pretrained="openai"
         )
         self.model.eval()
         self.model.to(self.device)
 
-        # ── 2. Sobrepõe pesos fine-tunados se disponíveis ─────────────
         self._finetuned = False
         self._version   = "base"
         model_path = Path(settings.FINETUNED_MODEL_PATH)
@@ -61,10 +54,6 @@ class EmbeddingService:
             f"top1 {checkpoint.get('best_top1', checkpoint.get('loss', '?'))})"
         )
 
-    # ------------------------------------------------------------------
-    # Singleton
-    # ------------------------------------------------------------------
-
     @classmethod
     def get_instance(cls) -> "EmbeddingService":
         if cls._instance is None:
@@ -75,32 +64,35 @@ class EmbeddingService:
     def reset(cls) -> None:
         cls._instance = None
 
-    # ------------------------------------------------------------------
-    # Embedding generation
-    # ------------------------------------------------------------------
-
     def generate_embedding(self, image: Image.Image) -> list[float]:
         """
         Gera embedding normalizado L2 a partir de uma imagem PIL.
 
-        O pipeline aplica crop/pad para centralizar o objeto antes do preprocess
-        do CLIP, melhorando a qualidade dos embeddings para imagens de joias.
-
-        Args:
-            image: PIL Image (qualquer modo/tamanho).
+        Aceita RGB (catálogo) e RGBA (saída do remove_background_rgba para buscas).
+        O pré-processamento aplica crop foreground + pad antes do CLIP preprocess,
+        garantindo que o objeto esteja bem centrado e ocupe a maior parte do canvas.
 
         Returns:
             Lista de 512 floats normalizados L2.
         """
-        if image.mode != "RGB":
+        from app.services.image_preprocessing_service import (
+            crop_to_foreground,
+            pad_to_square,
+            rgba_to_white_background,
+        )
+
+        # Crop usando a melhor máscara disponível (alpha ou threshold branco)
+        image = crop_to_foreground(image)
+
+        # Converte RGBA → RGB com fundo branco após o crop preciso
+        if image.mode == "RGBA":
+            image = rgba_to_white_background(image)
+        elif image.mode != "RGB":
             image = image.convert("RGB")
 
-        # Pré-processamento: centraliza o objeto (crop + pad quadrado)
-        from app.services.image_preprocessing_service import crop_to_object, pad_to_square
-        image = crop_to_object(image)
         image = pad_to_square(image)
 
-        # Preprocess CLIP: resize 224px + normalização
+        # CLIP preprocess: resize 224 + ToTensor + Normalize
         tensor = self.preprocess(image).unsqueeze(0).to(self.device)
 
         with torch.no_grad():
@@ -112,10 +104,6 @@ class EmbeddingService:
     async def generate_embedding_async(self, image: Image.Image) -> list[float]:
         """Wrapper assíncrono — executa inferência em thread pool."""
         return await asyncio.to_thread(self.generate_embedding, image)
-
-    # ------------------------------------------------------------------
-    # Metadata
-    # ------------------------------------------------------------------
 
     @property
     def embedding_dim(self) -> int:
