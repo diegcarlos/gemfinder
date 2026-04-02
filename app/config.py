@@ -20,8 +20,8 @@ class Settings(BaseSettings):
 
     # App settings
     EMBEDDING_DIM: int = 512   # CLIP ViT-B/32 → 512 dimensões (bem abaixo do limite HNSW de 2000)
-    TOP_K_RESULTS: int = 5
-    MIN_SIMILARITY: float = 0.5   # Resultados abaixo deste score são descartados
+    TOP_K_RESULTS: int = 10
+    MIN_SIMILARITY: float = 0.4   # Resultados abaixo deste score são descartados
 
     # Remove o fundo da imagem de consulta antes de gerar o embedding.
     # Equaliza o domínio entre fotos de celular e imagens fundobranco do catálogo.
